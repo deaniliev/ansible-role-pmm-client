@@ -1,45 +1,48 @@
 ---
-- name: Load OS family variables
-  ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
-
-- name: Validate input
-  ansible.builtin.import_tasks: assert.yml
-
-- name: Install pmm-client
-  ansible.builtin.include_tasks: "install_{{ ansible_facts['os_family'] }}.yml"
-
-# In check mode the package is not really installed, so on a new host there is
-# no pmm-agent unit and no pmm-admin to query: the remaining steps are skipped.
-- name: Check whether pmm-admin is available
-  ansible.builtin.command:
-    argv: [sh, -c, command -v pmm-admin]
-  register: __pmm_client_admin_bin
-  changed_when: false
-  failed_when: false
-  check_mode: false
-
-- name: Report steps skipped in check mode
-  ansible.builtin.debug:
-    msg: >-
-      pmm-client is not installed yet: starting pmm-agent, registration and
-      services cannot be checked and will be applied on a real run.
-  when:
-    - ansible_check_mode
-    - __pmm_client_admin_bin.rc != 0
-
-- name: Configure pmm-agent
-  when: not ansible_check_mode or __pmm_client_admin_bin.rc == 0
+- name: Install and configure PMM Client
+  when: pmm_client_enabled | bool
   block:
-    - name: Ensure pmm-agent is enabled and running
-      ansible.builtin.systemd_service:
-        name: "{{ pmm_client_agent_service }}"
-        state: started
-        enabled: true
+    - name: Load OS family variables
+      ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
 
-    - name: Register node with PMM Server
-      ansible.builtin.include_tasks: register.yml
-      when: pmm_client_register | bool
+    - name: Validate input
+      ansible.builtin.import_tasks: assert.yml
 
-    - name: Manage monitored services
-      ansible.builtin.include_tasks: services.yml
-      when: pmm_client_register | bool
+    - name: Install pmm-client
+      ansible.builtin.include_tasks: "install_{{ ansible_facts['os_family'] }}.yml"
+
+    # In check mode the package is not really installed, so on a new host there is
+    # no pmm-agent unit and no pmm-admin to query: the remaining steps are skipped.
+    - name: Check whether pmm-admin is available
+      ansible.builtin.command:
+        argv: [sh, -c, command -v pmm-admin]
+      register: __pmm_client_admin_bin
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Report steps skipped in check mode
+      ansible.builtin.debug:
+        msg: >-
+          pmm-client is not installed yet: starting pmm-agent, registration and
+          services cannot be checked and will be applied on a real run.
+      when:
+        - ansible_check_mode
+        - __pmm_client_admin_bin.rc != 0
+
+    - name: Configure pmm-agent
+      when: not ansible_check_mode or __pmm_client_admin_bin.rc == 0
+      block:
+        - name: Ensure pmm-agent is enabled and running
+          ansible.builtin.systemd_service:
+            name: "{{ pmm_client_agent_service }}"
+            state: started
+            enabled: true
+
+        - name: Register node with PMM Server
+          ansible.builtin.include_tasks: register.yml
+          when: pmm_client_register | bool
+
+        - name: Manage monitored services
+          ansible.builtin.include_tasks: services.yml
+          when: pmm_client_register | bool

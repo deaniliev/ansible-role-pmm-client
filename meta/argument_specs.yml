@@ -7,6 +7,12 @@ argument_specs:
         node with PMM Server using C(pmm-admin config) and adds/removes
         monitored services with C(pmm-admin add) / C(pmm-admin remove).
     options:
+      pmm_client_enabled:
+        type: bool
+        default: true
+        description:
+          - Run the role on this host. When false, nothing is installed,
+            configured or removed.
       pmm_client_manage_repo:
         type: bool
         default: true

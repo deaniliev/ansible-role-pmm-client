@@ -1,4 +1,8 @@
 ---
+# Set to false (e.g. in host_vars) to skip this host entirely: nothing is
+# installed, configured or removed.
+pmm_client_enabled: true
+
 # ------------------------------------------------------------------------------
 # Installation
 # ------------------------------------------------------------------------------

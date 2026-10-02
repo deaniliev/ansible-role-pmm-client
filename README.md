@@ -36,11 +36,27 @@ See [defaults/main.yml](defaults/main.yml) and [meta/argument_specs.yml](meta/ar
 
 | Variable | Default | Description |
 |---|---|---|
+| `pmm_client_enabled` | `true` | Run the role on this host. `false` skips the host entirely (see below) |
 | `pmm_client_manage_repo` | `true` | Install `percona-release` and enable the repository |
 | `pmm_client_repo_name` | `pmm3-client` | Repository passed to `percona-release enable` |
 | `pmm_client_repo_component` | `release` | `release`, `testing` or `experimental` |
 | `pmm_client_version` | `""` | Pin a version, e.g. `3.9.1`. Empty installs the latest |
 | `pmm_client_package_state` | `present` | `present` or `latest` (when no version is pinned) |
+
+`pmm_client_enabled` and `pmm_client_register` do different things:
+
+| | Package and `pmm-agent` | Registration | Services |
+|---|---|---|---|
+| `pmm_client_enabled: false` | not installed | no | no |
+| `pmm_client_register: false` | installed and running | no | no |
+| both `true` (default) | installed and running | yes | managed |
+
+`pmm_client_enabled: false` does not uninstall an existing client; it only
+makes the role leave the host alone. Example in `host_vars/db-test01.yml`:
+
+```yaml
+pmm_client_enabled: false
+```
 
 ### Registration
 
