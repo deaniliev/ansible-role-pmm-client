@@ -1,0 +1,150 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure PMM Client
+    description:
+      - Installs pmm-client from the official Percona repository, registers the
+        node with PMM Server using C(pmm-admin config) and adds/removes
+        monitored services with C(pmm-admin add) / C(pmm-admin remove).
+    options:
+      pmm_client_manage_repo:
+        type: bool
+        default: true
+        description: Install percona-release and enable the PMM client repository.
+      pmm_client_repo_name:
+        type: str
+        default: pmm3-client
+        description: Repository passed to C(percona-release enable).
+      pmm_client_repo_component:
+        type: str
+        default: release
+        choices: [release, testing, experimental]
+        description: Repository component.
+      pmm_client_percona_release_deb_url:
+        type: str
+        default: https://repo.percona.com/apt/percona-release_latest.generic_all.deb
+        description: URL of the percona-release .deb package.
+      pmm_client_percona_release_rpm_url:
+        type: str
+        default: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+        description: URL of the percona-release .rpm package.
+      pmm_client_version:
+        type: str
+        default: ""
+        description: Version of pmm-client to install (e.g. C(3.4.1)). Empty installs the latest.
+      pmm_client_package_state:
+        type: str
+        default: present
+        choices: [present, latest]
+        description: Package state used when I(pmm_client_version) is empty.
+      pmm_client_prerequisite_packages:
+        type: list
+        elements: str
+        description: Prerequisite packages. When unset, OS family defaults are used.
+      pmm_client_register:
+        type: bool
+        default: true
+        description: Register the node with PMM Server and manage services.
+      pmm_client_server_host:
+        type: str
+        default: ""
+        description: PMM Server host name or IP address.
+      pmm_client_server_port:
+        type: int
+        default: 443
+        description: PMM Server HTTPS port.
+      pmm_client_server_token:
+        type: str
+        default: ""
+        no_log: true
+        description: Service account token (C(glsa_...)). Preferred over username/password.
+      pmm_client_server_username:
+        type: str
+        default: admin
+        description: PMM Server user, used when no token is set.
+      pmm_client_server_password:
+        type: str
+        default: ""
+        no_log: true
+        description: PMM Server password, used when no token is set.
+      pmm_client_server_insecure_tls:
+        type: bool
+        default: false
+        description: Skip PMM Server TLS certificate validation.
+      pmm_client_node_address:
+        type: str
+        description: Node address. Defaults to the default IPv4 address.
+      pmm_client_node_type:
+        type: str
+        default: generic
+        choices: [generic, container]
+        description: Node type.
+      pmm_client_node_name:
+        type: str
+        description: Node name. Defaults to C(inventory_hostname).
+      pmm_client_node_model:
+        type: str
+        default: ""
+        description: Node model.
+      pmm_client_node_region:
+        type: str
+        default: ""
+        description: Node region.
+      pmm_client_node_az:
+        type: str
+        default: ""
+        description: Node availability zone.
+      pmm_client_node_custom_labels:
+        type: dict
+        default: {}
+        description: Custom labels for the node.
+      pmm_client_metrics_mode:
+        type: str
+        default: auto
+        choices: [auto, push, pull]
+        description: Metrics flow mode for node_exporter.
+      pmm_client_disable_collectors:
+        type: list
+        elements: str
+        default: []
+        description: node_exporter collectors to disable.
+      pmm_client_config_extra_args:
+        type: list
+        elements: str
+        default: []
+        description: Extra raw arguments for C(pmm-admin config).
+      pmm_client_config_force:
+        type: bool
+        default: false
+        description: Pass C(--force) to C(pmm-admin config) to replace an existing node with the same name.
+      pmm_client_force_register:
+        type: bool
+        default: false
+        description: Run C(pmm-admin config) even when pmm-agent is already registered with this server.
+      pmm_client_services:
+        type: list
+        elements: dict
+        default: []
+        description:
+          - Services to monitor. Besides the keys below, every other key is
+            passed to C(pmm-admin add <type>) as a flag (C(query_source) becomes
+            C(--query-source=...), C(true) becomes a bare flag, dicts become
+            C(k=v,k=v), lists become C(a,b)).
+          - Reserved keys are C(type) (required), C(name) (required),
+            C(address), C(state) (present/absent), C(recreate) and C(extra_args).
+      pmm_client_services_purge:
+        type: bool
+        default: false
+        description: Remove services registered on this node that are not in I(pmm_client_services).
+      pmm_client_no_log:
+        type: bool
+        default: true
+        description: Hide pmm-admin command lines (they contain credentials).
+      pmm_client_agent_service:
+        type: str
+        default: pmm-agent
+        description: systemd unit name of pmm-agent.
+      pmm_client_agent_config_file:
+        type: str
+        default: /usr/local/percona/pmm/config/pmm-agent.yaml
+        description: pmm-agent configuration file.

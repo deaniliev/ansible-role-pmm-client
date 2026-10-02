@@ -1,0 +1,107 @@
+---
+# ------------------------------------------------------------------------------
+# Installation
+# ------------------------------------------------------------------------------
+
+# Manage the Percona repository (percona-release package + `percona-release enable`).
+# Set to false if the pmm-client package is available from an internal mirror.
+pmm_client_manage_repo: true
+
+# Repository enabled by percona-release. PMM 3 clients use "pmm3-client".
+pmm_client_repo_name: pmm3-client
+
+# Repository component: release, testing or experimental.
+pmm_client_repo_component: release
+
+pmm_client_percona_release_deb_url: https://repo.percona.com/apt/percona-release_latest.generic_all.deb
+pmm_client_percona_release_rpm_url: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+
+# Pin a specific version (e.g. "3.4.1"). Empty means the latest available one.
+pmm_client_version: ""
+
+# present | latest
+pmm_client_package_state: present
+
+# Packages the official documentation lists as prerequisites (curl, gnupg, wget).
+# When not set, the per-OS-family list from vars/<family>.yml is used.
+# pmm_client_prerequisite_packages: []
+
+# ------------------------------------------------------------------------------
+# Registration with PMM Server (`pmm-admin config`)
+# ------------------------------------------------------------------------------
+
+pmm_client_register: true
+
+# PMM Server host name or IP address (required when pmm_client_register is true).
+pmm_client_server_host: ""
+pmm_client_server_port: 443
+
+# Authentication. A service account token (glsa_...) is the method recommended
+# by Percona. When it is set, username/password are ignored.
+pmm_client_server_token: ""
+pmm_client_server_username: admin
+pmm_client_server_password: ""
+
+# Skip validation of the PMM Server TLS certificate (self-signed certificates).
+pmm_client_server_insecure_tls: false
+
+# Node identity. The defaults match the ones pmm-admin autodetects.
+pmm_client_node_address: >-
+  {{ ansible_facts['default_ipv4']['address']
+     | default(ansible_facts['all_ipv4_addresses'] | default([], true) | first | default(''), true) }}
+pmm_client_node_type: generic
+pmm_client_node_name: "{{ inventory_hostname }}"
+
+# Optional node attributes (omitted when empty).
+pmm_client_node_model: ""
+pmm_client_node_region: ""
+pmm_client_node_az: ""
+pmm_client_node_custom_labels: {}
+
+# auto | push | pull
+pmm_client_metrics_mode: auto
+
+# Collectors to disable for node_exporter.
+pmm_client_disable_collectors: []
+
+# Extra raw arguments appended to `pmm-admin config`.
+pmm_client_config_extra_args: []
+
+# Pass --force to `pmm-admin config`. Needed when a node with the same name is
+# already registered on the server (for example after reinstalling a host).
+pmm_client_config_force: false
+
+# Re-run `pmm-admin config` even if pmm-agent is already registered with the
+# configured server.
+pmm_client_force_register: false
+
+# ------------------------------------------------------------------------------
+# Services (`pmm-admin add` / `pmm-admin remove`)
+# ------------------------------------------------------------------------------
+
+# List of services to monitor. See README.md for the full format.
+# Example:
+#   pmm_client_services:
+#     - type: mysql
+#       name: "{{ inventory_hostname }}-mysql"
+#       address: 127.0.0.1:3306
+#       username: pmm
+#       password: "{{ vault_pmm_mysql_password }}"
+#       query_source: perfschema
+#       environment: production
+#       cluster: main
+pmm_client_services: []
+
+# Remove services that are registered on this node but not listed in
+# pmm_client_services.
+pmm_client_services_purge: false
+
+# Hide command lines (they contain passwords and tokens) in the Ansible output.
+pmm_client_no_log: true
+
+# ------------------------------------------------------------------------------
+# Internals
+# ------------------------------------------------------------------------------
+
+pmm_client_agent_service: pmm-agent
+pmm_client_agent_config_file: /usr/local/percona/pmm/config/pmm-agent.yaml

@@ -1,0 +1,53 @@
+---
+- name: List services registered on this node
+  ansible.builtin.command:
+    argv: [pmm-admin, list, --json]
+  register: __pmm_client_list
+  changed_when: false
+  # Read-only, so it also runs in check mode and the plan below can be shown.
+  check_mode: false
+
+- name: Compute service changes
+  ansible.builtin.set_fact:
+    __pmm_client_service_plan: >-
+      {{ pmm_client_services | pmm_client_service_plan(
+           (__pmm_client_list.stdout | from_json).service | default([], true),
+           pmm_client_services_purge | bool) }}
+  no_log: "{{ pmm_client_no_log | bool }}"
+
+- name: Remove services from monitoring
+  ansible.builtin.command:
+    argv: "{{ item | pmm_client_remove_argv }}"
+  loop: "{{ __pmm_client_service_plan.remove }}"
+  loop_control:
+    label: "{{ item.type }}/{{ item.name }}"
+  changed_when: true
+
+- name: Add services to monitoring
+  ansible.builtin.command:
+    argv: "{{ item | pmm_client_add_argv }}"
+  loop: "{{ __pmm_client_service_plan.add }}"
+  loop_control:
+    label: "{{ item.type }}/{{ item.name }}"
+  changed_when: true
+  no_log: "{{ pmm_client_no_log | bool }}"
+
+# The command module skips the tasks above in check mode; report the planned
+# changes so that they are counted as "changed".
+- name: Report services that would be removed (check mode)
+  ansible.builtin.debug:
+    msg: Would remove {{ item.type }} service {{ item.name }}
+  loop: "{{ __pmm_client_service_plan.remove }}"
+  loop_control:
+    label: "{{ item.type }}/{{ item.name }}"
+  changed_when: true
+  when: ansible_check_mode
+
+- name: Report services that would be added (check mode)
+  ansible.builtin.debug:
+    msg: Would add {{ item.type }} service {{ item.name }}
+  loop: "{{ __pmm_client_service_plan.add }}"
+  loop_control:
+    label: "{{ item.type }}/{{ item.name }}"
+  changed_when: true
+  when: ansible_check_mode

@@ -1,0 +1,8 @@
+---
+__pmm_client_prerequisite_packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - wget
+
+__pmm_client_repo_file: /etc/apt/sources.list.d/percona-{{ pmm_client_repo_name }}-{{ pmm_client_repo_component }}.list
