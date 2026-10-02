@@ -47,7 +47,7 @@ pmm_client_server_username: admin
 pmm_client_server_password: ""
 
 # Skip validation of the PMM Server TLS certificate (self-signed certificates).
-pmm_client_server_insecure_tls: false
+pmm_client_server_insecure_tls: true
 
 # Node identity. The defaults match the ones pmm-admin autodetects.
 pmm_client_node_address: >-
