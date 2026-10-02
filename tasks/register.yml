@@ -1,0 +1,71 @@
+---
+- name: Check pmm-agent configuration
+  ansible.builtin.stat:
+    path: "{{ pmm_client_agent_config_file }}"
+  register: __pmm_client_agent_config_stat
+
+- name: Read pmm-agent configuration
+  ansible.builtin.slurp:
+    src: "{{ pmm_client_agent_config_file }}"
+  register: __pmm_client_agent_config_raw
+  when: __pmm_client_agent_config_stat.stat.exists
+  no_log: true
+
+- name: Determine registration state
+  ansible.builtin.set_fact:
+    __pmm_client_needs_register: >-
+      {{
+        pmm_client_force_register | bool
+        or (__pmm_client_agent_config.id | default('', true) | string | length == 0)
+        or (__pmm_client_agent_config.server.address | default('', true) != __pmm_client_server_address)
+      }}
+  vars:
+    __pmm_client_agent_config: >-
+      {{ (__pmm_client_agent_config_raw.content | b64decode | from_yaml)
+         if __pmm_client_agent_config_stat.stat.exists else {} }}
+  no_log: true
+
+- name: Register node with PMM Server
+  ansible.builtin.command:
+    argv: >-
+      {{
+        ['pmm-admin', 'config', '--server-url=' ~ __pmm_client_server_url]
+        + (['--server-insecure-tls'] if pmm_client_server_insecure_tls | bool else [])
+        + (['--force'] if pmm_client_config_force | bool else [])
+        + ['--metrics-mode=' ~ pmm_client_metrics_mode]
+        + (['--node-model=' ~ pmm_client_node_model] if pmm_client_node_model | length > 0 else [])
+        + (['--region=' ~ pmm_client_node_region] if pmm_client_node_region | length > 0 else [])
+        + (['--az=' ~ pmm_client_node_az] if pmm_client_node_az | length > 0 else [])
+        + (['--custom-labels=' ~ (pmm_client_node_custom_labels.items() | map('join', '=') | join(','))]
+            if pmm_client_node_custom_labels | length > 0 else [])
+        + (['--disable-collectors=' ~ (pmm_client_disable_collectors | join(','))]
+            if pmm_client_disable_collectors | length > 0 else [])
+        + pmm_client_config_extra_args
+        + [pmm_client_node_address | trim, pmm_client_node_type, pmm_client_node_name]
+      }}
+  vars:
+    __pmm_client_server_url: >-
+      https://{{
+        ('service_token:' ~ (pmm_client_server_token | urlencode | replace('/', '%2F')))
+        if pmm_client_server_token | length > 0 else
+        ((pmm_client_server_username | urlencode | replace('/', '%2F')) ~ ':' ~ (pmm_client_server_password | urlencode | replace('/', '%2F')))
+      }}@{{ __pmm_client_server_address }}
+  register: __pmm_client_config_result
+  changed_when: true
+  no_log: "{{ pmm_client_no_log | bool }}"
+  when: __pmm_client_needs_register | bool
+
+- name: Report registration that would run (check mode)
+  ansible.builtin.debug:
+    msg: >-
+      Would register node {{ pmm_client_node_name }} ({{ pmm_client_node_address }})
+      with {{ __pmm_client_server_address }}
+  changed_when: true
+  when:
+    - ansible_check_mode
+    - __pmm_client_needs_register | bool
+
+- name: Show registration result
+  ansible.builtin.debug:
+    var: __pmm_client_config_result.stdout_lines
+  when: __pmm_client_config_result is not skipped

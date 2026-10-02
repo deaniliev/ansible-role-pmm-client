@@ -1,0 +1,33 @@
+---
+galaxy_info:
+  role_name: pmm_client
+  namespace: deaniliev
+  author: Dean Iliev
+  description: Install and configure Percona Monitoring and Management (PMM) 3 Client and manage monitored services
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+    - name: Amazon Linux
+      versions:
+        - "2023"
+  galaxy_tags:
+    - percona
+    - pmm
+    - monitoring
+    - mysql
+    - postgresql
+    - mongodb
+
+dependencies: []

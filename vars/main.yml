@@ -1,0 +1,13 @@
+---
+# Service types supported by `pmm-admin add` in PMM 3.
+__pmm_client_service_types:
+  - mysql
+  - postgresql
+  - mongodb
+  - valkey
+  - proxysql
+  - haproxy
+  - external
+  - external-serverless
+
+__pmm_client_server_address: "{{ pmm_client_server_host }}:{{ pmm_client_server_port }}"

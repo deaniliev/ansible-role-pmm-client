@@ -1,0 +1,53 @@
+---
+- name: Check that the platform is supported
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] in ['Debian', 'RedHat']
+      - ansible_facts['architecture'] in ['x86_64', 'aarch64']
+    fail_msg: >-
+      PMM Client supports 64-bit Debian/Ubuntu and RHEL-compatible systems on
+      x86_64 or ARM64, got {{ ansible_facts['distribution'] }}
+      {{ ansible_facts['distribution_version'] }} on {{ ansible_facts['architecture'] }}.
+    quiet: true
+
+- name: Check registration settings
+  ansible.builtin.assert:
+    that:
+      - pmm_client_server_host | length > 0
+      - (pmm_client_server_token | length > 0) or (pmm_client_server_password | length > 0)
+      - pmm_client_node_address | trim | length > 0
+      - pmm_client_node_type in ['generic', 'container']
+      - pmm_client_metrics_mode in ['auto', 'push', 'pull']
+    fail_msg: >-
+      pmm_client_server_host and either pmm_client_server_token or
+      pmm_client_server_password must be set; pmm_client_node_address must be
+      set (it could not be detected from facts); pmm_client_node_type must be
+      generic or container; pmm_client_metrics_mode must be auto, push or pull.
+    quiet: true
+  when: pmm_client_register | bool
+
+- name: Check service definitions
+  ansible.builtin.assert:
+    that:
+      - item is mapping
+      - item.type | default('') in __pmm_client_service_types
+      - item.name | default('') | length > 0
+      - item.state | default('present') in ['present', 'absent']
+      - item.type | default('') not in ['haproxy', 'external'] or item.listen_port is defined
+        or item.state | default('present') == 'absent'
+    fail_msg: >-
+      Invalid entry in pmm_client_services: {{ item.name | default(item) }}.
+      Each service needs a name, a type (one of {{ __pmm_client_service_types | join(', ') }}),
+      an optional state (present/absent), and listen_port for haproxy and external services.
+    quiet: true
+  loop: "{{ pmm_client_services }}"
+  loop_control:
+    label: "{{ item.name | default('?') }}"
+
+- name: Check that service names are unique
+  ansible.builtin.assert:
+    that:
+      - (pmm_client_services | map(attribute='name') | list | length)
+        == (pmm_client_services | map(attribute='name') | unique | list | length)
+    fail_msg: Service names in pmm_client_services must be unique.
+    quiet: true

@@ -1,0 +1,47 @@
+---
+- name: Install prerequisite packages
+  ansible.builtin.apt:
+    name: "{{ pmm_client_prerequisite_packages | default(__pmm_client_prerequisite_packages) }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Configure the Percona repository
+  when: pmm_client_manage_repo | bool
+  block:
+    - name: Check whether percona-release is installed
+      ansible.builtin.stat:
+        path: /usr/bin/percona-release
+      register: __pmm_client_percona_release_bin
+
+    - name: Check whether the Percona repository is enabled
+      ansible.builtin.stat:
+        path: "{{ __pmm_client_repo_file }}"
+      register: __pmm_client_repo_file_stat
+
+    - name: Install percona-release
+      ansible.builtin.apt:
+        deb: "{{ pmm_client_percona_release_deb_url }}"
+        state: present
+      when: not __pmm_client_percona_release_bin.stat.exists
+
+    - name: Enable Percona repository {{ pmm_client_repo_name }}
+      ansible.builtin.command:
+        argv:
+          - percona-release
+          - enable
+          - "{{ pmm_client_repo_name }}"
+          - "{{ pmm_client_repo_component }}"
+        creates: "{{ __pmm_client_repo_file }}"
+      register: __pmm_client_repo_enable
+
+# In check mode percona-release does not really enable the repository, so the
+# package cannot be resolved on a host that has never been configured.
+- name: Install pmm-client
+  ansible.builtin.apt:
+    name: "pmm-client{{ ('=' ~ pmm_client_version ~ '*') if pmm_client_version | length > 0 else '' }}"
+    state: "{{ 'present' if pmm_client_version | length > 0 else pmm_client_package_state }}"
+    allow_downgrade: "{{ pmm_client_version | length > 0 }}"
+    update_cache: "{{ __pmm_client_repo_enable | default({}) is changed }}"
+  notify: Restart pmm-agent
+  when: not (ansible_check_mode and not (__pmm_client_repo_file_stat.stat.exists | default(true)))

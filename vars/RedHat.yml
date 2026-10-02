@@ -1,0 +1,8 @@
+---
+# curl is always present on EL systems (as curl or curl-minimal); installing
+# the "curl" package explicitly conflicts with curl-minimal on Amazon Linux 2023.
+__pmm_client_prerequisite_packages:
+  - gnupg2
+  - wget
+
+__pmm_client_repo_file: /etc/yum.repos.d/percona-{{ pmm_client_repo_name }}-{{ pmm_client_repo_component }}.repo
